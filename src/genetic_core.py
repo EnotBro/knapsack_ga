@@ -10,15 +10,15 @@ class GeneticCore:
                             fitness_evaluation_function,
                             fitness_evaluation_args,
                             crossover_function,
-                            crossover_probability,
+                            crossover_probability: float,
                             mutation_function,
-                            mutation_probability,
-                            number_of_iterations,
-                            number_of_iterations_without_changes,
-                            stop_if_without_changes,
-                            use_elitism,
-                            use_visualization
-                            ):
+                            mutation_probability: float,
+                            number_of_iterations: int,
+                            number_of_iterations_without_changes: int,
+                            stop_if_without_changes: bool,
+                            use_elitism: bool,
+                            use_visualization: bool
+                            ) -> tuple[list[int], int]:
         self.__crossover_function = crossover_function
         self.__crossover_probability = crossover_probability
         self.__mutation_function = mutation_function
@@ -71,7 +71,7 @@ class GeneticCore:
 
         return best_individual, iteration
 
-    def __get_new_population(self, fitness_scores):
+    def __get_new_population(self, fitness_scores: list[int]) -> list[list[int]]:
         new_population = []
         size_of_population = len(self.__population)
 
@@ -97,7 +97,7 @@ class GeneticCore:
 
         return new_population
 
-    def __get_intervals(self, probabilities):
+    def __get_intervals(self, probabilities: list[float]) -> list[float]:
         intervals = []
         cumulative_sum = 0
 
@@ -107,7 +107,7 @@ class GeneticCore:
 
         return intervals
 
-    def __get_random_pair_of_individuals(self, intervals):
+    def __get_random_pair_of_individuals(self, intervals: list[float]) -> list[list[int]]:
         selected_individuals = []
         for _ in range(2):
 
@@ -120,7 +120,7 @@ class GeneticCore:
 
         return selected_individuals
 
-    def __build_fitness_values_plot(self):
+    def __build_fitness_values_plot(self) -> None:
         iterations = range(1, len(self.__fitness_values) + 1)
 
         plt.plot(iterations, self.__fitness_values, marker='o', linestyle='-')

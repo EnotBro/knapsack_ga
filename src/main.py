@@ -12,7 +12,7 @@ TASK_CONDITIONS_FILE_PATH = "task_conditions1.txt"
 # task_conditions2 0001011101 82 57 включения/ценность/вес
 # task_conditions3 111111111111011 40 50 включения/ценность/вес
 
-USE_TASK_CONDITIONS_FROM_FILE = True
+USE_TASK_CONDITIONS_FROM_FILE = False
 
 
 def main() -> None:
@@ -33,7 +33,7 @@ def main() -> None:
     genetic_solver = KnapsackGenetic()
     genetic_result = genetic_solver.get_solution(
         *task_conditions,
-        number_of_random_initial_individuals=50,
+        number_of_random_initial_individuals=100,
         number_of_greedy_initial_individuals=0,
         crossover_probability=0.85,
         mutation_probability=0.1,
@@ -46,7 +46,7 @@ def main() -> None:
     print(genetic_solver.solution_to_string(genetic_result))
 
 
-def read_task_conditions_from_file(filename: string):
+def read_task_conditions_from_file(filename: string) -> tuple[list, int]:
     max_weight = 0
     objects = []
     with open(os.path.join(Path(__file__).resolve().parent.parent, filename), 'r') as file:
@@ -59,7 +59,7 @@ def read_task_conditions_from_file(filename: string):
 
 
 def get_random_task_conditions(number_of_objects: int, min_value: int, max_value: int, min_weight: int, max_weight: int,
-                               capacity: int):
+                               capacity: int) -> tuple[list[tuple[int, int]], int]:
     objects = [(random.randint(min_value, max_value), random.randint(min_weight, max_weight)) for _ in range(number_of_objects)]
     return objects, capacity
 

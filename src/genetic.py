@@ -5,18 +5,18 @@ import random
 class KnapsackGenetic:
 
     def get_solution(self,
-                     objects: [(int, int)],
+                     objects: list[tuple[int, int]],
                      capacity: int,
-                     number_of_random_initial_individuals=50,
-                     number_of_greedy_initial_individuals=0,
-                     crossover_probability=0.85,
-                     mutation_probability=0.1,
-                     number_of_iterations=2000,
-                     stop_if_without_changes=False,
-                     number_of_iterations_without_changes=50,
-                     use_elitism=True,
-                     use_visualization=False
-                     ):
+                     number_of_random_initial_individuals: int = 50,
+                     number_of_greedy_initial_individuals: int = 0,
+                     crossover_probability: float = 0.85,
+                     mutation_probability: float = 0.1,
+                     number_of_iterations: int = 2000,
+                     stop_if_without_changes: bool = False,
+                     number_of_iterations_without_changes: int = 50,
+                     use_elitism: bool = True,
+                     use_visualization: bool = False
+                     ) -> tuple[tuple[list[int], int, int], int]:
         self.objects=objects
         self.capacity=capacity
         number_of_objects = len(objects)
@@ -42,7 +42,7 @@ class KnapsackGenetic:
         result = self.__get_solution_from_best_individual(best_individual, objects)
         return result, iterations_count
 
-    def __get_solution_from_best_individual(self, best_individual, objects):
+    def __get_solution_from_best_individual(self, best_individual: list[int], objects: list[tuple[int, int]]) -> tuple[list[int], int, int]:
         sum_value = 0
         sum_weight = 0
         for i, presence in enumerate(best_individual):
@@ -54,7 +54,7 @@ class KnapsackGenetic:
 
 
     # Функции начальной инициализации
-    def __get_initial_population(cls, number_of_objects, num_random_individuals, num_greedy_individuals, task_conditions):
+    def __get_initial_population(self, number_of_objects: int, num_random_individuals: int, num_greedy_individuals: int, task_conditions: tuple[list[tuple[int, int]], int]) -> list[list[int]]:
         initial_population = []
         if num_random_individuals > 0:
             for _ in range(num_random_individuals):
@@ -70,7 +70,7 @@ class KnapsackGenetic:
 
     # Фитнесс функции
 
-    def __simple_fitness_evaluation(self, population, objects, capacity):
+    def __simple_fitness_evaluation(self, population: list[list[int]], objects: list[tuple[int, int]], capacity: int) -> list[int]:
         fitness_scores = []
         for individual in population:
             scores = 0
@@ -88,7 +88,7 @@ class KnapsackGenetic:
 
         return fitness_scores
 
-    def __fitness_evaluation_without_zeroing_out(self, population, objects, capacity):
+    def __fitness_evaluation_without_zeroing_out(self, population: list[list[int]], objects: list[tuple[int, int]], capacity: int)-> list[int]:
         fitness_scores = []
         for individual in population:
             sum_weight = sum(y[1] for x, y in zip(individual, objects) if x == 1)
@@ -105,7 +105,7 @@ class KnapsackGenetic:
 
     # Функции скрещивания
 
-    def __single_point_crossover(self, first_parent, second_parent):
+    def __single_point_crossover(self, first_parent: list[int], second_parent:list[int]) -> tuple[list[int], list[int]]:
         crossover_point = random.randint(0, len(first_parent) - 1)
 
         first_child = first_parent[:crossover_point] + second_parent[crossover_point:]
@@ -113,7 +113,7 @@ class KnapsackGenetic:
 
         return first_child, second_child
 
-    def __greedy_crossover(self, first_parent, second_parent):
+    def __greedy_crossover(self, first_parent: list[int], second_parent: list[int]) -> tuple[list[int], list[int]]:
         new_individual = [presence_first_parent or presence_second_parent for presence_first_parent, presence_second_parent in zip(first_parent, second_parent)]
         existing_objects_indexes = [index for index, presence_new_individual in enumerate(new_individual) if presence_new_individual == 1]
         objects_for_greedy = [self.objects[index] for index in existing_objects_indexes]
@@ -126,7 +126,7 @@ class KnapsackGenetic:
 
     # Функции мутации
 
-    def __each_gene_mutation(self, individual, mutation_probability):
+    def __each_gene_mutation(self, individual: list[int], mutation_probability: float) -> list[int]:
         probably_mutated_individual = individual.copy()
         if mutation_probability > 0:
             for i, presence in enumerate(probably_mutated_individual):
@@ -136,7 +136,7 @@ class KnapsackGenetic:
 
         return probably_mutated_individual
 
-    def __one_gene_mutation(self, individual, mutation_probability):
+    def __one_gene_mutation(self, individual: list[int], mutation_probability: float) -> list[int]:
         probably_mutated_individual = individual.copy()
         if mutation_probability > 0:
             random_value = random.random()
@@ -149,7 +149,7 @@ class KnapsackGenetic:
 
     # Функции представления результата в виде строки
 
-    def solution_to_string(self, solution):
+    def solution_to_string(self, solution: tuple[tuple[list[int], int, int], int]) -> str:
         (best_individual, sum_value, sum_weight), iterations_count = solution
         result = (f"\nGenetic algorithm results\n"
                   f"Objects: {best_individual}\n"
