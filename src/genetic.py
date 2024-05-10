@@ -17,18 +17,17 @@ class KnapsackGenetic:
                      use_elitism: bool = True,
                      use_visualization: bool = False
                      ) -> tuple[tuple[list[int], int, int], int]:
-        self.objects=objects
-        self.capacity=capacity
+        self.__objects=objects
+        self.__capacity=capacity
         number_of_objects = len(objects)
         genetic_core = GeneticCore()
         best_individual, iterations_count = genetic_core.get_best_individual(
             initial_population_function=self.__get_initial_population,
             initial_population_args=(number_of_objects,
                                      number_of_random_initial_individuals,
-                                     number_of_greedy_initial_individuals,
-                                     (objects, capacity)),
+                                     number_of_greedy_initial_individuals),
             fitness_evaluation_function=self.__fitness_evaluation_without_zeroing_out,
-            fitness_evaluation_args=(objects, capacity),
+            fitness_evaluation_args=[],
             crossover_function=self.__single_point_crossover,
             crossover_probability=crossover_probability,
             mutation_function=self.__each_gene_mutation,
@@ -39,22 +38,22 @@ class KnapsackGenetic:
             use_elitism=use_elitism,
             use_visualization=use_visualization
             )
-        result = self.__get_solution_from_best_individual(best_individual, objects)
+        result = self.__get_solution_from_best_individual(best_individual)
         return result, iterations_count
 
-    def __get_solution_from_best_individual(self, best_individual: list[int], objects: list[tuple[int, int]]) -> tuple[list[int], int, int]:
+    def __get_solution_from_best_individual(self, best_individual: list[int]) -> tuple[list[int], int, int]:
         sum_value = 0
         sum_weight = 0
         for i, presence in enumerate(best_individual):
             if presence:
-                current_value, current_weight = objects[i]
+                current_value, current_weight = self.__objects[i]
                 sum_value = sum_value + current_value
                 sum_weight = sum_weight + current_weight
         return best_individual, sum_value, sum_weight
 
 
     # Функции начальной инициализации
-    def __get_initial_population(self, number_of_objects: int, num_random_individuals: int, num_greedy_individuals: int, task_conditions: tuple[list[tuple[int, int]], int]) -> list[list[int]]:
+    def __get_initial_population(self, number_of_objects: int, num_random_individuals: int, num_greedy_individuals: int) -> list[list[int]]:
         initial_population = []
         if num_random_individuals > 0:
             for _ in range(num_random_individuals):
@@ -62,7 +61,7 @@ class KnapsackGenetic:
                 initial_population.append(new_individual)
         if num_greedy_individuals > 0:
             greedy_solver = KnapsackGreedy()
-            new_individual = greedy_solver.get_solution(*task_conditions)[0]
+            new_individual = greedy_solver.get_solution(self.__objects, self.__capacity)[0]
             for _ in range(num_greedy_individuals):
                 initial_population.append(new_individual)
 
@@ -70,14 +69,14 @@ class KnapsackGenetic:
 
     # Фитнесс функции
 
-    def __simple_fitness_evaluation(self, population: list[list[int]], objects: list[tuple[int, int]], capacity: int) -> list[int]:
+    def __simple_fitness_evaluation(self, population: list[list[int]]) -> list[int]:
         fitness_scores = []
         for individual in population:
             scores = 0
-            free_space = capacity
+            free_space = self.__capacity
             for i, presence in enumerate(individual):
                 if presence:
-                    current_value, current_weight = objects[i]
+                    current_value, current_weight = self.__objects[i]
                     scores = scores + current_value
                     free_space = free_space - current_weight
                     if free_space < 0:
@@ -88,16 +87,11 @@ class KnapsackGenetic:
 
         return fitness_scores
 
-    def __fitness_evaluation_without_zeroing_out(self, population: list[list[int]], objects: list[tuple[int, int]], capacity: int)-> list[int]:
+    def __fitness_evaluation_without_zeroing_out(self, population: list[list[int]]) -> list[int]:
         fitness_scores = []
         for individual in population:
-            sum_weight = sum(y[1] for x, y in zip(individual, objects) if x == 1)
-            while sum_weight > capacity:
-                index_to_replace = random.choice([i for i, including in enumerate(individual) if including == 1])
-                individual[index_to_replace] = 0
-                sum_weight = sum(y[1] for x, y in zip(individual, objects) if x == 1)
-
-            sum_value = sum(y[0] for x, y in zip(individual, objects) if x == 1)
+            self.__individual_correction(individual)
+            sum_value = sum(y[0] for x, y in zip(individual, self.__objects) if x == 1)
             fitness_scores.append(sum_value)
 
         return fitness_scores
@@ -116,13 +110,38 @@ class KnapsackGenetic:
     def __greedy_crossover(self, first_parent: list[int], second_parent: list[int]) -> tuple[list[int], list[int]]:
         new_individual = [presence_first_parent or presence_second_parent for presence_first_parent, presence_second_parent in zip(first_parent, second_parent)]
         existing_objects_indexes = [index for index, presence_new_individual in enumerate(new_individual) if presence_new_individual == 1]
-        objects_for_greedy = [self.objects[index] for index in existing_objects_indexes]
+        objects_for_greedy = [self.__objects[index] for index in existing_objects_indexes]
         greedy_solver = KnapsackGreedy()
-        greedy_solution = greedy_solver.get_solution(objects_for_greedy, self.capacity)[0]
+        greedy_solution = greedy_solver.get_solution(objects_for_greedy, self.__capacity)[0]
         for index, value in enumerate(greedy_solution):
             new_individual[existing_objects_indexes[index]] = value
 
         return new_individual, new_individual
+
+    def __zigzag_crossover(self, first_parent: list[int], second_parent: list[int]) -> tuple[list[int], list[int]]:
+        first_child = []
+        second_child = []
+        zigzag_direction = 0
+        number_of_objects = len(first_parent)
+        for i in range(number_of_objects):
+            first_gene = first_parent[i]
+            second_gene = second_parent[i]
+            if zigzag_direction == 0:
+                first_child.append(first_gene)
+                second_child.append(second_gene)
+            else:
+                first_child.append(second_gene)
+                second_child.append(first_gene)
+            zigzag_direction = zigzag_direction ^ 1
+
+        return first_child, second_child
+
+    def __crossover_with_correction(self, first_parent: list[int], second_parent: list[int]) -> tuple[list[int], list[int]]:
+        crossover_function = self.__crossover_function
+        new_individuals = crossover_function(first_parent, second_parent)
+        for individual in new_individuals:
+            self.__individual_correction(individual)
+        return new_individuals
 
     # Функции мутации
 
@@ -146,6 +165,12 @@ class KnapsackGenetic:
 
         return probably_mutated_individual
 
+    def __mutation_with_correction(self,  individual: list[int], mutation_probability: float) -> list[int]:
+        mutation_function = self.__mutation_function
+        probably_mutated_individual = mutation_function(individual, mutation_probability)
+        self.__individual_correction(probably_mutated_individual)
+        return probably_mutated_individual
+
 
     # Функции представления результата в виде строки
 
@@ -154,5 +179,14 @@ class KnapsackGenetic:
         result = (f"\nGenetic algorithm results\n"
                   f"Objects: {best_individual}\n"
                   f"Sum value: {sum_value} Sum weight: {sum_weight}\n"
-                  f"Number of iterations: {iterations_count}")
+                  f"Number of iterations for best result: {iterations_count}")
         return result
+
+    # Общее
+
+    def __individual_correction(self, individual):
+        sum_weight = sum(y[1] for x, y in zip(individual, self.__objects) if x == 1)
+        while sum_weight > self.__capacity:
+            index_to_replace = random.choice([i for i, including in enumerate(individual) if including == 1])
+            individual[index_to_replace] = 0
+            sum_weight = sum_weight - self.__objects[index_to_replace][1]

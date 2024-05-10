@@ -7,7 +7,7 @@ from genetic import KnapsackGenetic
 import random
 
 
-TASK_CONDITIONS_FILE_PATH = "task_conditions1.txt"
+TASK_CONDITIONS_FILE_PATH = "task_conditions3.txt"
 # task_conditions1 110101 33 37 включения/ценность/вес
 # task_conditions2 0001011101 82 57 включения/ценность/вес
 # task_conditions3 111111111111011 40 50 включения/ценность/вес

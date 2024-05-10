@@ -31,37 +31,31 @@ class GeneticCore:
         self.__population = initial_population_function(*initial_population_args)
 
         iteration = 0
+        current_best_result_iteration = 0
+        iterations_without_changes = 0
         fitness_scores = fitness_evaluation_function(self.__population, *fitness_evaluation_args)
+        current_max = max(fitness_scores)
 
-        if stop_if_without_changes:
-            iterations_without_changes = 0
-            current_max = max(fitness_scores)
-            while iteration < number_of_iterations and iterations_without_changes < number_of_iterations_without_changes:
-                self.__population = self.__get_new_population(fitness_scores)
-                fitness_scores = fitness_evaluation_function(self.__population, *fitness_evaluation_args)
-                iteration = iteration + 1
+        while iteration < number_of_iterations:
+            self.__population = self.__get_new_population(fitness_scores)
+            fitness_scores = fitness_evaluation_function(self.__population, *fitness_evaluation_args)
+            iteration = iteration + 1
 
-                new_max = max(fitness_scores)
+            new_max = max(fitness_scores)
 
-                if use_visualization:
-                    self.__fitness_values.append(new_max)
+            if use_visualization:
+                self.__fitness_values.append(new_max)
 
-                if new_max == current_max:
-                    iterations_without_changes = iterations_without_changes + 1
-                else:
-                    current_max = new_max
-                    iterations_without_changes = 0
-            if iterations_without_changes == number_of_iterations_without_changes:
-                iteration = iteration - iterations_without_changes
-        else:
-            while iteration < number_of_iterations:
-                self.__population = self.__get_new_population(fitness_scores)
-                fitness_scores = fitness_evaluation_function(self.__population, *fitness_evaluation_args)
-                iteration = iteration + 1
+            if new_max == current_max:
+                iterations_without_changes = iterations_without_changes + 1
+            else:
+                current_max = new_max
+                iterations_without_changes = 0
+                current_best_result_iteration = iteration
 
-                if use_visualization:
-                    new_max = max(fitness_scores)
-                    self.__fitness_values.append(new_max)
+            if stop_if_without_changes:
+                if iterations_without_changes >= number_of_iterations_without_changes:
+                    break
 
         best_individual_index = fitness_scores.index(max(fitness_scores))
         best_individual = self.__population[best_individual_index]
@@ -69,7 +63,7 @@ class GeneticCore:
         if use_visualization:
             self.__build_fitness_values_plot()
 
-        return best_individual, iteration
+        return best_individual, current_best_result_iteration
 
     def __get_new_population(self, fitness_scores: list[int]) -> list[list[int]]:
         new_population = []
