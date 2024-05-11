@@ -1,43 +1,50 @@
-from genetic_core import GeneticCore
+from genetic_core import GeneticCore, BaseGenetic
 from greedy import KnapsackGreedy
 import random
 
-class KnapsackGenetic:
 
-    def get_solution(self,
-                     objects: list[tuple[int, int]],
-                     capacity: int,
-                     number_of_random_initial_individuals: int = 50,
-                     number_of_greedy_initial_individuals: int = 0,
-                     crossover_probability: float = 0.85,
-                     mutation_probability: float = 0.1,
-                     number_of_iterations: int = 2000,
-                     stop_if_without_changes: bool = False,
-                     number_of_iterations_without_changes: int = 50,
-                     use_elitism: bool = True,
-                     use_visualization: bool = False
-                     ) -> tuple[tuple[list[int], int, int], int]:
-        self.__objects=objects
-        self.__capacity=capacity
-        number_of_objects = len(objects)
-        genetic_core = GeneticCore()
-        best_individual, iterations_count = genetic_core.get_best_individual(
-            initial_population_function=self.__get_initial_population,
-            initial_population_args=(number_of_objects,
-                                     number_of_random_initial_individuals,
-                                     number_of_greedy_initial_individuals),
-            fitness_evaluation_function=self.__fitness_evaluation_without_zeroing_out,
-            fitness_evaluation_args=[],
-            crossover_function=self.__single_point_crossover,
+class KnapsackGenetic(BaseGenetic):
+
+    def __init__(self,
+                 initial_population_function,
+                 fitness_evaluation_function,
+                 crossover_function,
+                 mutation_function,
+                 number_of_random_initial_individuals: int = 50,
+                 number_of_greedy_initial_individuals: int = 0,
+                 crossover_probability: float = 0.85,
+                 mutation_probability: float = 0.1,
+                 number_of_iterations: int = 2000,
+                 stop_if_without_changes: bool = False,
+                 number_of_iterations_without_changes: int = 50,
+                 use_elitism: bool = True,
+                 use_visualization: bool = False,
+                 use_correction_after_each_step: bool = False
+                 ):
+        super().__init__(
             crossover_probability=crossover_probability,
-            mutation_function=self.__each_gene_mutation,
-            mutation_probability=mutation_probability,
             number_of_iterations=number_of_iterations,
             stop_if_without_changes=stop_if_without_changes,
             number_of_iterations_without_changes=number_of_iterations_without_changes,
             use_elitism=use_elitism,
             use_visualization=use_visualization
-            )
+        )
+        self.__initial_population_function = getattr(self, "_KnapsackGenetic__" + initial_population_function)
+        self.__fitness_evaluation_function = getattr(self, "_KnapsackGenetic__" + fitness_evaluation_function)
+        self.__crossover_function = getattr(self, "_KnapsackGenetic__" + crossover_function)
+        self.__mutation_function = getattr(self, "_KnapsackGenetic__" + mutation_function)
+
+        self.__number_of_random_initial_individuals = number_of_random_initial_individuals
+        self.__number_of_greedy_initial_individuals = number_of_greedy_initial_individuals
+        self.__mutation_probability = mutation_probability
+        self.__use_correction_after_each_step = use_correction_after_each_step
+
+    def get_solution(self, objects: list[tuple[int, int]], capacity: int) -> tuple[tuple[list[int], int, int], int]:
+        self.__objects=objects
+        self.__capacity=capacity
+        self.__number_of_objects = len(objects)
+        genetic_core = GeneticCore()
+        best_individual, iterations_count = genetic_core.get_best_individual(self)
         result = self.__get_solution_from_best_individual(best_individual)
         return result, iterations_count
 
@@ -51,23 +58,29 @@ class KnapsackGenetic:
                 sum_weight = sum_weight + current_weight
         return best_individual, sum_value, sum_weight
 
-
     # Функции начальной инициализации
-    def __get_initial_population(self, number_of_objects: int, num_random_individuals: int, num_greedy_individuals: int) -> list[list[int]]:
+
+    def initial_population_function(self):
+        return self.__initial_population_function()
+
+    def __get_initial_population(self) -> list[list[int]]:
         initial_population = []
-        if num_random_individuals > 0:
-            for _ in range(num_random_individuals):
-                new_individual = [random.randint(0, 1) for _ in range(number_of_objects)]
+        if self.__number_of_random_initial_individuals > 0:
+            for _ in range(self.__number_of_random_initial_individuals):
+                new_individual = [random.randint(0, 1) for _ in range(self.__number_of_objects)]
                 initial_population.append(new_individual)
-        if num_greedy_individuals > 0:
+        if self.__number_of_greedy_initial_individuals > 0:
             greedy_solver = KnapsackGreedy()
             new_individual = greedy_solver.get_solution(self.__objects, self.__capacity)[0]
-            for _ in range(num_greedy_individuals):
+            for _ in range(self.__number_of_greedy_initial_individuals):
                 initial_population.append(new_individual)
 
         return initial_population
 
     # Фитнесс функции
+
+    def fitness_evaluation_function(self, population):
+        return self.__fitness_evaluation_function(population)
 
     def __simple_fitness_evaluation(self, population: list[list[int]]) -> list[int]:
         fitness_scores = []
@@ -96,8 +109,12 @@ class KnapsackGenetic:
 
         return fitness_scores
 
-
     # Функции скрещивания
+    def crossover_function(self, first_parent, second_parent):
+        if self.__use_correction_after_each_step:
+            return self.__crossover_with_correction(first_parent, second_parent)
+        else:
+            return self.__crossover_function(first_parent, second_parent)
 
     def __single_point_crossover(self, first_parent: list[int], second_parent:list[int]) -> tuple[list[int], list[int]]:
         crossover_point = random.randint(0, len(first_parent) - 1)
@@ -145,32 +162,37 @@ class KnapsackGenetic:
 
     # Функции мутации
 
-    def __each_gene_mutation(self, individual: list[int], mutation_probability: float) -> list[int]:
+    def mutation_function(self, individual):
+        if self.__use_correction_after_each_step:
+            return self.__mutation_with_correction(individual)
+        else:
+            return self.__mutation_function(individual)
+
+    def __each_gene_mutation(self, individual: list[int]) -> list[int]:
         probably_mutated_individual = individual.copy()
-        if mutation_probability > 0:
+        if self.__mutation_probability > 0:
             for i, presence in enumerate(probably_mutated_individual):
                 random_value = random.random()
-                if random_value <= mutation_probability:
+                if random_value <= self.__mutation_probability:
                     probably_mutated_individual[i] = presence ^ 1
 
         return probably_mutated_individual
 
-    def __one_gene_mutation(self, individual: list[int], mutation_probability: float) -> list[int]:
+    def __one_gene_mutation(self, individual: list[int]) -> list[int]:
         probably_mutated_individual = individual.copy()
-        if mutation_probability > 0:
+        if self.__mutation_probability > 0:
             random_value = random.random()
-            if random_value <= mutation_probability:
+            if random_value <= self.__mutation_probability:
                 random_gene_index = random.randint(0, len(probably_mutated_individual) - 1)
                 probably_mutated_individual[random_gene_index] = probably_mutated_individual[random_gene_index] ^ 1
 
         return probably_mutated_individual
 
-    def __mutation_with_correction(self,  individual: list[int], mutation_probability: float) -> list[int]:
+    def __mutation_with_correction(self,  individual: list[int]) -> list[int]:
         mutation_function = self.__mutation_function
-        probably_mutated_individual = mutation_function(individual, mutation_probability)
+        probably_mutated_individual = mutation_function(individual)
         self.__individual_correction(probably_mutated_individual)
         return probably_mutated_individual
-
 
     # Функции представления результата в виде строки
 
@@ -190,3 +212,4 @@ class KnapsackGenetic:
             index_to_replace = random.choice([i for i, including in enumerate(individual) if including == 1])
             individual[index_to_replace] = 0
             sum_weight = sum_weight - self.__objects[index_to_replace][1]
+

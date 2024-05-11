@@ -1,49 +1,90 @@
 import random
 import matplotlib.pyplot as plt
+from abc import ABC, abstractmethod
+
+
+class BaseGenetic(ABC):
+    def __init__(self,
+                 crossover_probability: float,
+                 number_of_iterations: int,
+                 number_of_iterations_without_changes: int,
+                 stop_if_without_changes: bool,
+                 use_elitism: bool,
+                 use_visualization: bool
+                 ):
+        self.__crossover_probability = crossover_probability
+        self.__number_of_iterations = number_of_iterations
+        self.__number_of_iterations_without_changes = number_of_iterations_without_changes
+        self.__stop_if_without_changes = stop_if_without_changes
+        self.__use_elitism = use_elitism
+        self.__use_visualization = use_visualization
+
+    @property
+    def crossover_probability(self):
+        return self.__crossover_probability
+
+    @property
+    def number_of_iterations(self):
+        return self.__number_of_iterations
+
+    @property
+    def number_of_iterations_without_changes(self):
+        return self.__number_of_iterations_without_changes
+
+    @property
+    def stop_if_without_changes(self):
+        return self.__stop_if_without_changes
+
+    @property
+    def use_elitism(self):
+        return self.__use_elitism
+
+    @property
+    def use_visualization(self):
+        return self.__use_visualization
+
+    @abstractmethod
+    def initial_population_function(self):
+        pass
+
+    @abstractmethod
+    def fitness_evaluation_function(self, population):
+        pass
+
+    @abstractmethod
+    def crossover_function(self, first_parent, second_parent):
+        pass
+
+    @abstractmethod
+    def mutation_function(self, individual):
+        pass
 
 
 class GeneticCore:
 
-    def get_best_individual(self,
-                            initial_population_function,
-                            initial_population_args,
-                            fitness_evaluation_function,
-                            fitness_evaluation_args,
-                            crossover_function,
-                            crossover_probability: float,
-                            mutation_function,
-                            mutation_probability: float,
-                            number_of_iterations: int,
-                            number_of_iterations_without_changes: int,
-                            stop_if_without_changes: bool,
-                            use_elitism: bool,
-                            use_visualization: bool
-                            ) -> tuple[list[int], int]:
-        self.__crossover_function = crossover_function
-        self.__crossover_probability = crossover_probability
-        self.__mutation_function = mutation_function
-        self.__mutation_probability = mutation_probability
-        self.__use_elitism = use_elitism
+    def get_best_individual(self, genetic_task: BaseGenetic):
 
-        if use_visualization:
+        self.__genetic_task = genetic_task
+
+        if self.__genetic_task.use_visualization:
             self.__fitness_values = []
 
-        self.__population = initial_population_function(*initial_population_args)
+        self.__population = self.__genetic_task.initial_population_function()
 
         iteration = 0
         current_best_result_iteration = 0
         iterations_without_changes = 0
-        fitness_scores = fitness_evaluation_function(self.__population, *fitness_evaluation_args)
+        fitness_scores = self.__genetic_task.fitness_evaluation_function(self.__population)
         current_max = max(fitness_scores)
 
-        while iteration < number_of_iterations:
+        while iteration < self.__genetic_task.number_of_iterations:
             self.__population = self.__get_new_population(fitness_scores)
-            fitness_scores = fitness_evaluation_function(self.__population, *fitness_evaluation_args)
+            fitness_scores = self.__genetic_task.fitness_evaluation_function(self.__population)
             iteration = iteration + 1
 
             new_max = max(fitness_scores)
 
-            if use_visualization:
+            if self.__genetic_task.use_visualization:
                 self.__fitness_values.append(new_max)
 
             if new_max == current_max:
@@ -53,14 +94,14 @@ class GeneticCore:
                 iterations_without_changes = 0
                 current_best_result_iteration = iteration
 
-            if stop_if_without_changes:
-                if iterations_without_changes >= number_of_iterations_without_changes:
+            if self.__genetic_task.stop_if_without_changes:
+                if iterations_without_changes >= self.__genetic_task.number_of_iterations_without_changes:
                     break
 
         best_individual_index = fitness_scores.index(max(fitness_scores))
         best_individual = self.__population[best_individual_index]
 
-        if use_visualization:
+        if self.__genetic_task.use_visualization:
             self.__build_fitness_values_plot()
 
         return best_individual, current_best_result_iteration
@@ -69,7 +110,7 @@ class GeneticCore:
         new_population = []
         size_of_population = len(self.__population)
 
-        if self.__use_elitism:
+        if self.__genetic_task.use_elitism:
             best_individual_index = fitness_scores.index(max(fitness_scores))
             best_individual = self.__population[best_individual_index]
             for _ in range(2):
@@ -83,10 +124,10 @@ class GeneticCore:
             selected_individuals = self.__get_random_pair_of_individuals(intervals)
             new_individuals = selected_individuals.copy()
             random_value = random.random()
-            if random_value <= self.__crossover_probability:
-                new_individuals = self.__crossover_function(*selected_individuals)
+            if random_value <= self.__genetic_task.crossover_probability:
+                new_individuals = self.__genetic_task.crossover_function(*selected_individuals)
             for individual in new_individuals:
-                probably_mutated_individual = self.__mutation_function(individual, self.__mutation_probability)
+                probably_mutated_individual = self.__genetic_task.mutation_function(individual)
                 new_population.append(probably_mutated_individual)
 
         return new_population

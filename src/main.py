@@ -30,9 +30,11 @@ def main() -> None:
     greedy_result = greedy_solver.get_solution(*task_conditions)
     print(greedy_solver.solution_to_string(greedy_result))
 
-    genetic_solver = KnapsackGenetic()
-    genetic_result = genetic_solver.get_solution(
-        *task_conditions,
+    genetic_solver = KnapsackGenetic(
+        initial_population_function="get_initial_population",
+        fitness_evaluation_function="fitness_evaluation_without_zeroing_out",
+        crossover_function="single_point_crossover",
+        mutation_function="each_gene_mutation",
         number_of_random_initial_individuals=100,
         number_of_greedy_initial_individuals=0,
         crossover_probability=0.85,
@@ -41,8 +43,10 @@ def main() -> None:
         stop_if_without_changes=False,
         number_of_iterations_without_changes=150,
         use_elitism=True,
-        use_visualization=True
+        use_visualization=True,
+        use_correction_after_each_step=False
     )
+    genetic_result = genetic_solver.get_solution(*task_conditions)
     print(genetic_solver.solution_to_string(genetic_result))
 
 
