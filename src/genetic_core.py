@@ -106,7 +106,7 @@ class GeneticCore:
 
         return best_individual, current_best_result_iteration
 
-    def __get_new_population(self, fitness_scores: list[int]) -> list[list[int]]:
+    def __get_new_population(self, fitness_scores: list[float]) -> list[list[int]]:
         new_population = []
         size_of_population = len(self.__population)
 

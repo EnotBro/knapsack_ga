@@ -38,7 +38,7 @@ def main() -> None:
         number_of_random_initial_individuals=100,
         number_of_greedy_initial_individuals=0,
         crossover_probability=0.85,
-        mutation_probability=0.1,
+        mutation_probability=0.01,
         number_of_iterations=2000,
         stop_if_without_changes=False,
         number_of_iterations_without_changes=150,
@@ -63,8 +63,8 @@ def read_task_conditions_from_file(filename: string) -> tuple[list, int]:
 
 
 def get_random_task_conditions(number_of_objects: int, min_value: int, max_value: int, min_weight: int, max_weight: int,
-                               capacity: int) -> tuple[list[tuple[int, int]], int]:
-    objects = [(random.randint(min_value, max_value), random.randint(min_weight, max_weight)) for _ in range(number_of_objects)]
+                               capacity: int) -> tuple[list[tuple[float, float]], int]:
+    objects = [(random.uniform(min_value, max_value), random.uniform(min_weight, max_weight)) for _ in range(number_of_objects)]
     return objects, capacity
 
 

@@ -39,7 +39,7 @@ class KnapsackGenetic(BaseGenetic):
         self.__mutation_probability = mutation_probability
         self.__use_correction_after_each_step = use_correction_after_each_step
 
-    def get_solution(self, objects: list[tuple[int, int]], capacity: int) -> tuple[tuple[list[int], int, int], int]:
+    def get_solution(self, objects: list[tuple[float, float]], capacity: int) -> tuple[tuple[list[int], float, float], int]:
         self.__objects=objects
         self.__capacity=capacity
         self.__number_of_objects = len(objects)
@@ -48,7 +48,7 @@ class KnapsackGenetic(BaseGenetic):
         result = self.__get_solution_from_best_individual(best_individual)
         return result, iterations_count
 
-    def __get_solution_from_best_individual(self, best_individual: list[int]) -> tuple[list[int], int, int]:
+    def __get_solution_from_best_individual(self, best_individual: list[int]) -> tuple[list[int], float, float]:
         sum_value = 0
         sum_weight = 0
         for i, presence in enumerate(best_individual):
@@ -82,7 +82,7 @@ class KnapsackGenetic(BaseGenetic):
     def fitness_evaluation_function(self, population):
         return self.__fitness_evaluation_function(population)
 
-    def __simple_fitness_evaluation(self, population: list[list[int]]) -> list[int]:
+    def __simple_fitness_evaluation(self, population: list[list[int]]) -> list[float]:
         fitness_scores = []
         for individual in population:
             scores = 0
@@ -100,7 +100,7 @@ class KnapsackGenetic(BaseGenetic):
 
         return fitness_scores
 
-    def __fitness_evaluation_without_zeroing_out(self, population: list[list[int]]) -> list[int]:
+    def __fitness_evaluation_without_zeroing_out(self, population: list[list[int]]) -> list[float]:
         fitness_scores = []
         for individual in population:
             self.__individual_correction(individual)
@@ -196,7 +196,7 @@ class KnapsackGenetic(BaseGenetic):
 
     # Функции представления результата в виде строки
 
-    def solution_to_string(self, solution: tuple[tuple[list[int], int, int], int]) -> str:
+    def solution_to_string(self, solution: tuple[tuple[list[int], float, float], int]) -> str:
         (best_individual, sum_value, sum_weight), iterations_count = solution
         result = (f"\nGenetic algorithm results\n"
                   f"Objects: {best_individual}\n"

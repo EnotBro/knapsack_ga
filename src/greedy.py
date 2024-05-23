@@ -1,19 +1,19 @@
 
 class KnapsackGreedy:
 
-    def get_solution(self, objects: list[tuple[int, int]], capacity: int) -> tuple[list[int], int, int]:
+    def get_solution(self, objects: list[tuple[float, float]], capacity: int) -> tuple[list[int], float, float]:
         relative_values = self.__get_relative_values(objects)
         sorted_values = sorted(relative_values, key=lambda x: x[1], reverse=True)
         result = self.__get_greedy_solution(objects, sorted_values, capacity)
         return result
 
-    def __get_relative_values(self, objects: list[tuple[int, int]]) -> list[tuple[int, float]]:
+    def __get_relative_values(self, objects: list[tuple[float, float]]) -> list[tuple[int, float]]:
         result = []
         for i, (value, weight) in enumerate(objects):
             result.append((i, value/weight))
         return result
 
-    def __get_greedy_solution(self, objects: list[tuple[int, int]], sorted_values: list[tuple[int, int]], capacity: int) -> tuple[list[int], int, int]:
+    def __get_greedy_solution(self, objects: list[tuple[float, float]], sorted_values: list[tuple[int, float]], capacity: int) -> tuple[list[int], float, float]:
         objects_presence = [0] * len(sorted_values)
         free_space = capacity
         sum_value = 0
@@ -31,7 +31,7 @@ class KnapsackGreedy:
         sum_weight = capacity - free_space
         return objects_presence, sum_value, sum_weight
 
-    def solution_to_string(self, solution: tuple[list[int], int, int]) -> str:
+    def solution_to_string(self, solution: tuple[list[int], float, float]) -> str:
         objects_presence, sum_value, sum_weight = solution
         result = (f"\nGreedy algorithm results\n"
                   f"Objects: {objects_presence}\n"
